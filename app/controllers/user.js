@@ -1,11 +1,49 @@
 const User = require('../models/user')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const authorizeRoles = require('../middleware/roleMiddleware')
+
+exports.getUsersForDropdown = async (req, res) => {
+  try {
+    let query = { isDel: false }
+
+    // ถ้าไม่ใช่ admin ให้เห็นแค่ตัวเอง
+    if (req.user.level !== 'admin') {
+      query._id = req.user._id
+    }
+
+    const users = await User.find(query)
+      .select('_id prefix firstname lastname')
+
+    const formattedUsers = users.map(user => ({
+      value: user._id,
+      label: `${user.prefix || ''}${user.prefix ? ' ' : ''}${user.firstname} ${user.lastname}`
+    }))
+
+    const data =
+      req.user.level === 'admin'
+        ? [{ value: 'all', label: 'แสดงทั้งหมด' }, ...formattedUsers]
+        : formattedUsers
+
+    res.json({
+      success: true,
+      data
+    })
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
+
 
 exports.Login = async (req, res) => {
   try {
     const { username, password } = req.body
-    console.log(username,password)
+
     // 1️⃣ เช็คว่ามีข้อมูลส่งมาครบไหม
     if (!username || !password) {
       return res.status(400).json({
