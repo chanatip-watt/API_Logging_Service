@@ -1,7 +1,7 @@
 const User = require('../models/user')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
-const authorizeRoles = require('../middleware/roleMiddleware')
+const authorizeRoles = require('../middleware/role_middleware')
 
 exports.getUsersForDropdown = async (req, res) => {
   try {
@@ -37,8 +37,6 @@ exports.getUsersForDropdown = async (req, res) => {
     })
   }
 }
-
-
 
 exports.Login = async (req, res) => {
   try {

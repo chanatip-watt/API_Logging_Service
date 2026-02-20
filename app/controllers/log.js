@@ -1,95 +1,79 @@
 const Log = require('../models/log')
+const reportLogExcel = require('../utils/report_log_excel')
+const reportLogPdf = require('../utils/report_log_by_pdf')
+const buildLogQuery = require('../utils/build_log_query')
+const formatLogData = require('../utils/formatted')
 
 exports.allLog = async (req, res) => {
   try {
-  
-    const {
-      action,
-      startDate,
-      endDate,
-      userId,
-      statusCode,
-      labnumber,
-      minTimeMs = 0,
-      maxTimeMs = 999999
-    } = req.query
-    const mongoose = require('mongoose')
+    const { page = 1, limit = 50 } = req.query
 
-    let query = {}
+    const pageNumber = Number(page)
+    const pageSize = Number(limit)
+    const skip = (pageNumber - 1) * pageSize
 
-    if (action && action !== 'all') {
-      query.action = Array.isArray(action)
-        ? { $in: action }
-        : action
-    }
+    const query = buildLogQuery(req.query)
 
-    if (startDate && endDate) {
-      query.timestamp = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
-      }
-    } else {
-      const todayStart = new Date()
-      todayStart.setHours(0, 0, 0, 0)
+    const logs = await Log.find(query)
+      .populate({
+        path: 'userId',
+        select: 'prefix firstname lastname',
+        match: { isDel: false }
+      })
+      .skip(skip)
+      .limit(pageSize)
+      .lean()
+    
 
-      const todayEnd = new Date()
-      todayEnd.setHours(23, 59, 59, 999)
+    const formatted = formatLogData(logs)
+    console.log(logs)
+    const total = await Log.countDocuments(query)
 
-      query.timestamp = {
-        $gte: todayStart,
-        $lte: todayEnd
-      }
-    }
-
-    if (userId && userId !== 'all') {
-
-      if (Array.isArray(userId)) {
-        query.userId = {
-          $in: userId.map(id => new mongoose.Types.ObjectId(id))
-        }
-      } else {
-        query.userId = new mongoose.Types.ObjectId(userId)
-      }
-    }
-
-    if (statusCode && statusCode.trim() !== '') {
-      query["response.statusCode"] = statusCode;
-    }
-
-    if (labnumber) {
-
-      let labArray = []
-
-      if (Array.isArray(labnumber)) {
-        labArray = labnumber
-      } else if (typeof labnumber === 'string') {
-        labArray = labnumber
-          .split(',')
-          .map(x => x.trim())
-          .filter(x => x !== '')
-      }
-
-      if (labArray.length > 0) {
-        query.labnumber = { $in: labArray }
-      }
-    }
-
-    if ( minTimeMs & maxTimeMs) {
-      query['response.timeMs'] = {
-        $gte: Number(minTimeMs),
-        $lte: Number(maxTimeMs)
-      }
-    }
-
-    const logs = await Log.find(query).limit(50);
-
-    res.json(logs)
+    res.json({
+      total,
+      page: pageNumber,
+      limit: pageSize,
+      data: formatted
+    })
 
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
 }
 
+exports.reportLog = async (req, res) => {
+  try {
+
+    const { format } = req.query
+    const query = buildLogQuery(req.query)
+
+    const logs = await Log.find(query)
+      .populate({
+        path: 'userId',
+        select: 'prefix firstname lastname',
+        match: { isDel: false }
+      })
+      .lean()
+
+    const formatted = formatLogData(logs)
+
+    if (format === 'pdf') {
+      return reportLogPdf(res, formatted)
+    }
+
+    if (format === 'excel') {
+      return reportLogExcel(res, formatted)
+    }
+
+    return res.json({
+      total: formatted.length,
+      data: formatted
+    })
+
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}
 exports.deleteLog = async (req, res) => {
   try {
     const { id } = req.params
