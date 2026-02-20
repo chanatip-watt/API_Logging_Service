@@ -21,7 +21,7 @@ const logSchema = new mongoose.Schema(
 
     response: {
       statusCode: {
-        type: Number,
+        type: String ,
         required: true
       },
       message: {

@@ -13,9 +13,10 @@ exports.allLog = async (req, res) => {
       minTimeMs = 0,
       maxTimeMs = 999999
     } = req.query
+    const mongoose = require('mongoose')
 
-    let query = {}   // 🔥 ต้องมีบรรทัดนี้
-    // Filter action
+    let query = {}
+
     if (action && action !== 'all') {
       query.action = Array.isArray(action)
         ? { $in: action }
@@ -41,12 +42,46 @@ exports.allLog = async (req, res) => {
     }
 
     if (userId && userId !== 'all') {
-      query.userId = Array.isArray(userId)
-        ? { $in: userId }
-        : userId
+
+      if (Array.isArray(userId)) {
+        query.userId = {
+          $in: userId.map(id => new mongoose.Types.ObjectId(id))
+        }
+      } else {
+        query.userId = new mongoose.Types.ObjectId(userId)
+      }
     }
 
-    const logs = await Log.find(query).limit(5)
+    if (statusCode && statusCode.trim() !== '') {
+      query["response.statusCode"] = statusCode;
+    }
+
+    if (labnumber) {
+
+      let labArray = []
+
+      if (Array.isArray(labnumber)) {
+        labArray = labnumber
+      } else if (typeof labnumber === 'string') {
+        labArray = labnumber
+          .split(',')
+          .map(x => x.trim())
+          .filter(x => x !== '')
+      }
+
+      if (labArray.length > 0) {
+        query.labnumber = { $in: labArray }
+      }
+    }
+
+    if ( minTimeMs & maxTimeMs) {
+      query['response.timeMs'] = {
+        $gte: Number(minTimeMs),
+        $lte: Number(maxTimeMs)
+      }
+    }
+
+    const logs = await Log.find(query).limit(50);
 
     res.json(logs)
 
