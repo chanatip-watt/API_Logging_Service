@@ -68,7 +68,6 @@ exports.Login = async (req, res) => {
         message: 'Invalid username or password'
       })
     }
-    console.log("SIGN SECRET:", process.env.JWT_SECRET)
 
     const token = jwt.sign(
       {

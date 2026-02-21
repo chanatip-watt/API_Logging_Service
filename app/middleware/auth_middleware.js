@@ -21,8 +21,6 @@ exports.authMiddleware = async (req, res, next) => {
       })
     }
 
-    // 3️⃣ verify token
-    console.log("VERIFY SECRET:", process.env.JWT_SECRET)
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
 

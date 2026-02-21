@@ -26,7 +26,7 @@ exports.allLog = async (req, res) => {
     
 
     const formatted = formatLogData(logs)
-    console.log(logs)
+
     const total = await Log.countDocuments(query)
 
     res.json({
