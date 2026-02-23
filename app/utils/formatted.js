@@ -2,6 +2,7 @@ const  formatDate =  require('../utils/format_log_data')
 
 function formatLogData(logs) {
   return logs.map(log => ({
+    _id: log._id,
     userName: log.userId
       ? `${log.userId.prefix}${log.userId.firstname} ${log.userId.lastname}`
       : '-',
@@ -10,7 +11,7 @@ function formatLogData(logs) {
     method: log.request?.method || '-',
 
     timestamp: formatDate(log.timestamp),
-
+    timestampNOformat: log.timestamp,
     labnumber: log.labnumber?.length > 0
       ? log.labnumber.join(',')
       : '-',

@@ -11,11 +11,11 @@ function reportLogByPdf(res, data) {
 
   doc.pipe(res)
 
-  // Title
+
   doc.fontSize(16).text('Log Report', { align: 'center' })
   doc.moveDown()
 
-  // Body
+
   data.forEach((row, index) => {
     doc
       .fontSize(8)

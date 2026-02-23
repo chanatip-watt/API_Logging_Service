@@ -47,6 +47,5 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
-// 🔥 ตรงนี้คือจุดสำคัญ
 module.exports =
   mongoose.models.users || mongoose.model('users', userSchema)

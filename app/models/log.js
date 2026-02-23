@@ -5,7 +5,7 @@ const logSchema = new mongoose.Schema(
     timestamp: {
       type: Date,
       required: true,
-      default: Date.now // เก็บเป็น ISO 8601 UTC อัตโนมัติ
+      default: Date.now 
     },
 
     request: {
@@ -61,12 +61,12 @@ const logSchema = new mongoose.Schema(
     },
 
     labnumber: {
-      type: [String], // เป็น array
+      type: [String],
       default: []
     }
   },
   {
-    timestamps: false // เพราะเรามี timestamp ของเราเองแล้ว
+    timestamps: false 
   }
 )
 

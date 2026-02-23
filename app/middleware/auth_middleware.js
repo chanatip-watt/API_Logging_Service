@@ -5,7 +5,6 @@ exports.authMiddleware = async (req, res, next) => {
   try {
     let token
 
-    // 1️⃣ เช็คว่ามี Authorization header ไหม
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith('Bearer')
@@ -13,7 +12,6 @@ exports.authMiddleware = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1]
     }
 
-    // 2️⃣ ถ้าไม่มี token
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -24,7 +22,6 @@ exports.authMiddleware = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
 
-    // 4️⃣ ดึง user จาก database
     const user = await User.findById(decoded.id).select('-password')
 
     if (!user) {
@@ -34,7 +31,6 @@ exports.authMiddleware = async (req, res, next) => {
       })
     }
 
-    // 5️⃣ แนบ user ไปกับ request
     req.user = user
 
     next()

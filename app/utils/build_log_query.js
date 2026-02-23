@@ -11,9 +11,10 @@ function buildLogQuery(queryParams) {
     minTimeMs = 0,
     maxTimeMs = 999999
   } = queryParams
-
+  
   let query = {}
 
+  
   if (action && action !== 'all') {
     query.action = Array.isArray(action)
       ? { $in: action }
@@ -76,6 +77,7 @@ function buildLogQuery(queryParams) {
     }
   }
 
+  
   return query
 }
 

@@ -7,7 +7,6 @@ exports.getUsersForDropdown = async (req, res) => {
   try {
     let query = { isDel: false }
 
-    // ถ้าไม่ใช่ admin ให้เห็นแค่ตัวเอง
     if (req.user.level !== 'admin') {
       query._id = req.user._id
     }
@@ -20,11 +19,7 @@ exports.getUsersForDropdown = async (req, res) => {
       label: `${user.prefix || ''}${user.prefix ? ' ' : ''}${user.firstname} ${user.lastname}`
     }))
 
-    const data =
-      req.user.level === 'admin'
-        ? [{ value: 'all', label: 'แสดงทั้งหมด' }, ...formattedUsers]
-        : formattedUsers
-
+    const data = formattedUsers
     res.json({
       success: true,
       data
@@ -42,7 +37,6 @@ exports.Login = async (req, res) => {
   try {
     const { username, password } = req.body
 
-    // 1️⃣ เช็คว่ามีข้อมูลส่งมาครบไหม
     if (!username || !password) {
       return res.status(400).json({
         success: false,
@@ -50,7 +44,7 @@ exports.Login = async (req, res) => {
       })
     }
 
-    // 2️⃣ ค้นหา user จากฐานข้อมูล
+
     const user = await User.findOne({ username })
 
     if (!user) {
@@ -63,6 +57,7 @@ exports.Login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password)
 
     if (!isMatch) {
+  
       return res.status(401).json({
         success: false,
         message: 'Invalid username or password'
@@ -83,8 +78,7 @@ exports.Login = async (req, res) => {
       token,
       user: {
         id: user._id,
-        username: user.username,
-        role: user.role,
+        role: user.level,
         firstname: user.firstname,
         lastname: user.lastname
       }

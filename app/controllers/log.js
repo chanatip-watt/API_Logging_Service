@@ -4,9 +4,15 @@ const reportLogPdf = require('../utils/report_log_by_pdf')
 const buildLogQuery = require('../utils/build_log_query')
 const formatLogData = require('../utils/formatted')
 
+
 exports.allLog = async (req, res) => {
   try {
-    const { page = 1, limit = 50 } = req.query
+    const {
+      page = 1,
+      limit = 50,
+      sortField = "none",
+      sortOrder = "none"
+    } = req.query
 
     const pageNumber = Number(page)
     const pageSize = Number(limit)
@@ -14,20 +20,79 @@ exports.allLog = async (req, res) => {
 
     const query = buildLogQuery(req.query)
 
-    const logs = await Log.find(query)
-      .populate({
-        path: 'userId',
-        select: 'prefix firstname lastname',
-        match: { isDel: false }
-      })
-      .skip(skip)
-      .limit(pageSize)
-      .lean()
-    
+    if (req.user.level === "user") {
+      query.userId = req.user._id
+    }
+
+
+
+    let sortOption = {}
+
+    if (sortOrder !== "none") {
+
+      if (sortField === "timestamp") {
+        if (sortOrder === "asc") sortOption.timestamp = 1
+        if (sortOrder === "desc") sortOption.timestamp = -1
+      }
+      
+      if (sortField === "timeMs") {
+        if (sortOrder === "asc") sortOption["response.timeMs"]  = 1
+        if (sortOrder === "desc") sortOption["response.timeMs"]  = -1
+      }
+
+      if (sortField === "action") {
+        if (sortOrder === "asc") sortOption.action = 1
+        if (sortOrder === "desc") sortOption.action = -1
+      }
+    }
+
+
+    const actionOrder = [
+      "labOrder",
+      "labResult",
+      "receive",
+      "accept",
+      "approve",
+      "reapprove",
+      "unapprove",
+      "unreceive",
+      "rerun",
+      "save",
+      "listTransactions",
+      "getTransaction",
+      "analyzerResult",
+      "analyzerRequest"
+    ]
+
+    let logs
+    let total = await Log.countDocuments(query)
+
+    if (sortField === "action" && sortOrder === "custom") {
+      logs = await Log.aggregate([
+        { $match: query },
+        {
+          $addFields: {
+            actionIndex: { $indexOfArray: [actionOrder, "$action"] }
+          }
+        },
+        { $sort: { actionIndex: 1 } },
+        { $skip: skip },
+        { $limit: pageSize }
+      ])
+    } else {
+      logs = await Log.find(query)
+        .populate({
+          path: "userId",
+          select: "prefix firstname lastname",
+          match: { isDel: false }
+        })
+        .sort(sortOption)
+        .skip(skip)
+        .limit(pageSize)
+        .lean()
+    }
 
     const formatted = formatLogData(logs)
-
-    const total = await Log.countDocuments(query)
 
     res.json({
       total,
@@ -47,6 +112,11 @@ exports.reportLog = async (req, res) => {
     const { format } = req.query
     const query = buildLogQuery(req.query)
 
+    if (req.user.level === "user") {
+      query.userId = req.user._id
+    }
+    
+    
     const logs = await Log.find(query)
       .populate({
         path: 'userId',
@@ -60,13 +130,14 @@ exports.reportLog = async (req, res) => {
     if (format === 'pdf') {
       return reportLogPdf(res, formatted)
     }
+    
 
     if (format === 'excel') {
+      console.log(format)
       return reportLogExcel(res, formatted)
     }
 
     return res.json({
-      total: formatted.length,
       data: formatted
     })
 
@@ -74,31 +145,5 @@ exports.reportLog = async (req, res) => {
     res.status(500).json({ message: err.message })
   }
 }
-exports.deleteLog = async (req, res) => {
-  try {
-    const { id } = req.params
 
-    const log = await Log.findById(id)
-
-    if (!log) {
-      return res.status(404).json({
-        success: false,
-        message: "Log not found"
-      })
-    }
-
-    await log.deleteOne()
-
-    res.status(200).json({
-      success: true,
-      message: "Log deleted successfully"
-    })
-
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message
-    })
-  }
-}
 
